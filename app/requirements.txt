@@ -1,0 +1,10 @@
+streamlit==1.32.0
+google-generativeai
+python-docx
+docxtpl
+requests
+pydantic
+python-dotenv
+PyMuPDF
+opencv-python-headless
+numpy

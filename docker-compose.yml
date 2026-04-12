@@ -1,0 +1,26 @@
+services:
+  exam-web:
+    build: ./app
+    container_name: exam-web
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./app:/app
+    env_file:
+      - .env
+    depends_on:
+      - paddleocr
+    restart: always
+
+  paddleocr:
+    build: ./ocr_api
+    container_name: paddleocr
+    ports:
+      - "8866:8866"
+    volumes:
+      - ./ocr_api/models:/root/.paddleocr # 挂载模型缓存
+    deploy:
+      resources:
+        limits:
+          memory: 6G
+    restart: always

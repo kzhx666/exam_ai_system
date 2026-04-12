@@ -1,0 +1,14 @@
+# 忽略环境变量配置（极其重要，防止 API Key 泄露！）
+.env
+
+# 忽略生成的临时图片和文件
+data/images/
+/tmp/
+*.doc
+*.pdf
+*.docx
+
+# 忽略 Python 缓存文件
+__pycache__/
+*.pyc
+.DS_Store
