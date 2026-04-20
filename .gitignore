@@ -1,14 +1,12 @@
-# 忽略环境变量配置（极其重要，防止 API Key 泄露！）
+# 忽略本地生成的数据和图片
+data/
+app/data/
+images/
+# 忽略 SQLite 数据库
+*.db
+*.sqlite3
+# 忽略环境变量密钥配置 (极其重要！)
 .env
-
-# 忽略生成的临时图片和文件
-data/images/
-/tmp/
-*.doc
-*.pdf
-*.docx
-
-# 忽略 Python 缓存文件
+# 忽略 Python 缓存
 __pycache__/
 *.pyc
-.DS_Store
