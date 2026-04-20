@@ -40,8 +40,8 @@ import pandas as pd
 
 load_dotenv()
 
-# ================= UI 全局高级美化配置 (含上传组件强制汉化) =================
-st.set_page_config(page_title="AI 试卷排版大师 v2.0", layout="wide", page_icon="📝")
+# ================= UI 全局高级美化配置 =================
+st.set_page_config(page_title="AI 试卷排版大师 v2.9", layout="wide", page_icon="📝")
 
 st.markdown("""
 <style>
@@ -54,40 +54,12 @@ st.markdown("""
     div[data-testid="stExpander"] > summary { font-weight: bold; font-size: 1.1rem; }
     [data-testid="stSidebar"] { background-color: #f8f9fa; border-right: 1px solid #e9ecef; }
     
-    /* ======== 魔法汉化：强制替换 Streamlit 上传组件的英文 ======== */
-    [data-testid="stFileUploadDropzone"] > div > div > span {
-        display: none;
-    }
-    [data-testid="stFileUploadDropzone"] > div > div::before {
-        content: "将试卷文件拖拽至此处";
-        display: block;
-        font-size: 16px;
-        font-weight: 500;
-        margin-bottom: 5px;
-    }
-    [data-testid="stFileUploadDropzone"] > div > div > small {
-        display: none;
-    }
-    [data-testid="stFileUploadDropzone"] > div > div::after {
-        content: "文件大小上限 200MB • 支持 PDF, DOCX, DOC, PNG, JPG, TXT";
-        display: block;
-        font-size: 13px;
-        opacity: 0.6;
-        margin-top: 5px;
-    }
-    [data-testid="stFileUploadDropzone"] button {
-        color: transparent !important;
-    }
-    [data-testid="stFileUploadDropzone"] button::after {
-        content: "浏览本地文件";
-        color: currentColor;
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
-        font-weight: 400;
-    }
-    /* ============================================================== */
+    [data-testid="stFileUploadDropzone"] > div > div > span { display: none; }
+    [data-testid="stFileUploadDropzone"] > div > div::before { content: "将试卷文件拖拽至此处"; display: block; font-size: 16px; font-weight: 500; margin-bottom: 5px; }
+    [data-testid="stFileUploadDropzone"] > div > div > small { display: none; }
+    [data-testid="stFileUploadDropzone"] > div > div::after { content: "文件大小上限 200MB • 支持 PDF, DOCX, DOC, PNG, JPG, TXT"; display: block; font-size: 13px; opacity: 0.6; margin-top: 5px; }
+    [data-testid="stFileUploadDropzone"] button { color: transparent !important; }
+    [data-testid="stFileUploadDropzone"] button::after { content: "浏览本地文件"; color: currentColor; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-weight: 400; }
 </style>
 """, unsafe_allow_html=True)
 # =======================================================
@@ -139,7 +111,7 @@ if 'section_order' not in st.session_state:
     st.session_state.section_order = []
 
 with st.sidebar:
-    st.image("https://img.shields.io/badge/AI%20排版引擎-v2.0%20Pro-blue?style=for-the-badge", use_column_width=True)
+    st.image("https://img.shields.io/badge/AI%20排版引擎-v2.9%20Pro-blue?style=for-the-badge", use_column_width=True)
     st.header("🗄️ 树状题库与收藏")
     tag_search = st.text_input("🔍 搜标签 (如: 建筑材料/第一章)", placeholder="输入知识点标签搜索库中试题")
     if st.button("从本地库拉取至手术台"):
@@ -167,21 +139,21 @@ with st.sidebar:
             st.code(f"[图片:{safe_name}]", language="text")
 
 st.title("📝 建筑材料教务系统 - 全能排版矩阵")
-st.caption("✨ 支持套题嵌套解析 | 本地题库分类 | Excel双向导出 | Word 水印与占位符")
+st.caption("✨ v2.9：国标级括弧排版间距 | 智能题型归一化 | 终极洗白防丢")
 
 def normalize_type(raw_type):
     t = str(raw_type).lower()
     if 'single' in t or '单选' in t: return '单选题'
     if 'multiple' in t or '多选' in t: return '多选题'
-    if 'judge' in t or '判断' in t: return '判断题'
-    if 'fill' in t or '填空' in t: return '填空题'
-    if 'short' in t or '简答' in t: return '简答题'
+    if 'judge' in t or '判断' in t or 'true' in t or 'false' in t or 't/f' in t: return '判断题'
+    if 'fill' in t or '填空' in t or 'blank' in t: return '填空题'
+    if 'short' in t or '简答' in t or 'answer' in t: return '简答题'
     if 'calc' in t or '计算' in t: return '计算题'
     if 'draw' in t or '绘图' in t or '画图' in t: return '绘图题'
     return raw_type
 
 def clean_option(opt_str):
-    return re.sub(r'^[A-H][\.\、\s]+', '', str(opt_str)).strip()
+    return re.sub(r'^[\(（\[]?\s*[A-HＡ-Ｈ]\s*([\)）\]\.\、\．\:]+|\s+)\s*', '', str(opt_str), flags=re.IGNORECASE).strip()
 
 def clean_stem(text):
     return str(text).strip()
@@ -273,6 +245,52 @@ def set_run_font(run, font_name, size_pt, bold=False, color=None):
     run.bold = bold
     if color: run.font.color.rgb = color
 
+def sanitize_image_for_docx(img_path):
+    try:
+        clean_path = img_path + "_v3_super_clean.png" 
+        
+        if not os.path.exists(clean_path):
+            with Image.open(img_path) as img:
+                if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info):
+                    bg = Image.new("RGBA", img.size, (255, 255, 255, 255))
+                    bg.paste(img, mask=img.convert('RGBA').split()[3])
+                    img = bg.convert("RGB")
+                else:
+                    img = img.convert("RGB")
+                    
+                gray = img.convert("L")
+                img_arr = np.array(gray)
+                
+                if np.mean(img_arr) < 90:
+                    img_arr = 255 - img_arr
+                    
+                blur_img = Image.fromarray(img_arr).filter(ImageFilter.GaussianBlur(radius=30))
+                blur_arr = np.array(blur_img, dtype=np.float32) + 1e-5 
+                img_arr_f = np.array(img_arr, dtype=np.float32)
+                
+                norm_arr = np.clip((img_arr_f / blur_arr) * 255.0, 0, 255)
+                norm_arr = np.where(norm_arr > 200, 255, norm_arr) 
+                norm_arr = np.where(norm_arr < 150, norm_arr * 0.7, norm_arr) 
+                norm_arr = np.clip(norm_arr, 0, 255).astype(np.uint8)
+                
+                final_img = Image.fromarray(norm_arr)
+                
+                inv_for_bbox = ImageOps.invert(final_img)
+                bbox = inv_for_bbox.getbbox()
+                if bbox:
+                    margin = 10
+                    left = max(0, bbox[0] - margin)
+                    top = max(0, bbox[1] - margin)
+                    right = min(final_img.width, bbox[2] + margin)
+                    bottom = min(final_img.height, bbox[3] + margin)
+                    final_img = final_img.crop((left, top, right, bottom))
+                    
+                final_img.save(clean_path, "PNG")
+        return clean_path
+    except Exception as e:
+        print(f"Sanitize error: {e}")
+        return img_path 
+
 def generate_word_direct(sections, show_answer, paper_size, meta_info):
     doc = docx.Document()
     section_cfg = doc.sections[0]
@@ -294,7 +312,6 @@ def generate_word_direct(sections, show_answer, paper_size, meta_info):
         section_cfg.page_height = Mm(297)
         max_img_width = Cm(14)
 
-    # ===== 页眉处理 (学校Logo、校名与防伪水印) =====
     header = section_cfg.header
     p_header = header.paragraphs[0]
     p_header.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -317,7 +334,6 @@ def generate_word_direct(sections, show_answer, paper_size, meta_info):
             p_header.add_run("\n")
         run_wm = p_header.add_run("机密 ★ 内部考卷文件")
         set_run_font(run_wm, '黑体', 14, bold=True, color=RGBColor(211, 211, 211))
-    # ============================================
 
     footer = section_cfg.footer
     p_f = footer.paragraphs[0]
@@ -405,16 +421,19 @@ def generate_word_direct(sections, show_answer, paper_size, meta_info):
                 set_run_font(run_prefix, '宋体', 12)
                 set_run_font(p_q.add_run("（"), '宋体', 12)
                 if show_answer and ans_text:
-                    run_ans = p_q.add_run(ans_text); set_run_font(run_ans, '宋体', 12, bold=True, color=RGBColor(255, 0, 0))
-                else: p_q.add_run("   ")
+                    # ================= V2.9 扩宽括号内部的答案预留空间 =================
+                    run_ans = p_q.add_run(f"  {ans_text}  "); set_run_font(run_ans, '宋体', 12, bold=True, color=RGBColor(255, 0, 0))
+                else: 
+                    p_q.add_run("      ") # 从 3 个空格加长到了 6 个空格，符合排版国标
                 set_run_font(p_q.add_run("）"), '宋体', 12)
                 if clean_text[end:]: set_run_font(p_q.add_run(clean_text[end:]), '宋体', 12)
             else:
                 set_run_font(p_q.add_run(f"{q_id}. {clean_text}"), '宋体', 12)
                 set_run_font(p_q.add_run(" （"), '宋体', 12)
                 if show_answer and ans_text:
-                    run_ans = p_q.add_run(f" {ans_text} "); set_run_font(run_ans, '宋体', 12, bold=True, color=RGBColor(255, 0, 0))
-                else: p_q.add_run("   ")
+                    run_ans = p_q.add_run(f"  {ans_text}  "); set_run_font(run_ans, '宋体', 12, bold=True, color=RGBColor(255, 0, 0))
+                else: 
+                    p_q.add_run("      ") # 从 3 个空格加长到了 6 个空格，符合排版国标
                 set_run_font(p_q.add_run("）"), '宋体', 12)
         else:
             set_run_font(p_q.add_run(f"{q_id}. {clean_text}"), '宋体', 12)
@@ -423,13 +442,34 @@ def generate_word_direct(sections, show_answer, paper_size, meta_info):
             
         for img_name in img_tags:
             img_path = os.path.join(IMAGE_DIR, img_name)
+            p_img = doc.add_paragraph()
+            p_img.paragraph_format.left_indent = Cm(0.6) if not parent_id else Cm(1.2)
+            run_img = p_img.add_run()
+            
             if os.path.exists(img_path):
-                p_img = doc.add_paragraph()
-                p_img.paragraph_format.left_indent = Cm(0.6) if not parent_id else Cm(1.2)
-                run_img = p_img.add_run()
                 try:
-                    run_img.add_picture(img_path, width=Cm(min(7.5, max_img_width.cm)))
-                except: pass
+                    safe_img_path = sanitize_image_for_docx(img_path)
+                    with Image.open(safe_img_path) as tmp_img:
+                        w_px, h_px = tmp_img.size
+                        ratio = w_px / float(h_px) if h_px > 0 else 1.0
+                        
+                    if ratio <= 1.3:
+                        target_w = min(w_px * 0.02, 4.0)
+                    elif ratio >= 2.0:
+                        target_w = min(w_px * 0.02, max_img_width.cm)
+                    else:
+                        target_w = min(w_px * 0.02, 7.0)
+                        
+                    target_w = min(target_w, max_img_width.cm)
+                    target_w = max(target_w, 1.5)
+                    
+                    run_img.add_picture(safe_img_path, width=Cm(target_w))
+                except Exception as e:
+                    run_img.text = f"\n[❌ 引擎将图片写入Word失败，原图可能损坏: {img_name}]"
+                    set_run_font(run_img, '黑体', 11, color=RGBColor(255, 0, 0), bold=True)
+            else:
+                run_img.text = f"\n[⚠️ 严重警告：服务器本地找不到图片 {img_name}！请确保在上传原卷后再生成！]"
+                set_run_font(run_img, '黑体', 11, color=RGBColor(255, 0, 0), bold=True)
         
         layout = q.get('layout', 'none')
         raw_opts = q.get('options', [])
@@ -495,6 +535,22 @@ def generate_word_direct(sections, show_answer, paper_size, meta_info):
     file_stream.seek(0)
     return file_stream
 
+def robust_json_parse(json_text):
+    clean_json = re.sub(r'^```(json)?\s*', '', json_text.strip(), flags=re.IGNORECASE)
+    clean_json = re.sub(r'\s*```$', '', clean_json, flags=re.IGNORECASE).strip()
+    if clean_json.startswith('{') and clean_json.endswith(']'): clean_json = '[' + clean_json
+    elif clean_json.startswith('[') and clean_json.endswith('}'): clean_json = clean_json + ']'
+    elif clean_json.startswith('{') and clean_json.endswith('}'): clean_json = '[' + clean_json + ']'
+    
+    qs = json.loads(clean_json, strict=False)
+    if isinstance(qs, dict): qs = [qs]
+    for q in qs:
+        ans = q.get('answer', '')
+        if isinstance(ans, list): q['answer'] = "".join(str(x) for x in ans)
+        elif ans is None: q['answer'] = ""
+        else: q['answer'] = str(ans).strip()
+    return qs
+
 tab1, tab2, tab3 = st.tabs(["⚡ 全自动智能解析", "🌉 桥接人机协作", "🛒 试卷排版组装 & 数据导出"])
 
 with tab1:
@@ -521,7 +577,12 @@ with tab1:
                     
                 if raw_text:
                     try:
-                        genai.configure(api_key=api_key)
+                        api_base = os.getenv("GEMINI_API_BASE")
+                        if api_base:
+                            genai.configure(api_key=api_key, client_options={"api_endpoint": api_base})
+                        else:
+                            genai.configure(api_key=api_key)
+                        
                         model = genai.GenerativeModel('gemini-2.5-flash')
                         prompt = f"""你是一个高级试卷排版员。将以下文本整理为严格的JSON数组。
 包含字段: id(必须提取原卷题号), type(单选/多选/判断/填空/简答/计算/绘图), section(所属大题板块), content(题干), options(字符串数组), answer(答案), explanation(详细解析)。
@@ -529,12 +590,11 @@ with tab1:
 【极其重要2】：如果是阅读理解或共用题干的“套题”，请在父题中只保留背景材料作为 content，并将下面的小题存放在父题的 `sub_questions` 字段中。
 文本：{raw_text}"""
                         response = model.generate_content(prompt)
-                        json_str = response.text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
-                        questions = json.loads(json_str)
+                        questions = robust_json_parse(response.text)
                         for q in questions:
                             q['layout'] = calculate_option_layout(q)
                             st.session_state.cart.append(q)
-                        st.success(f"🎉 成功解析 {len(questions)} 道大题！请前往第三页核对。")
+                        st.success(f"🎉 成功解析 {len(questions)} 道大题！请前往第三页核解。")
                     except Exception as e:
                         st.error(f"解析失败：{e}")
 
@@ -560,25 +620,30 @@ with tab2:
         json_input = st.text_area("粘贴JSON：", height=150, label_visibility="collapsed")
         if st.button("校验并加入试题库", type="primary"):
             try:
-                clean_json = re.sub(r'^```(json)?\s*', '', json_input.strip(), flags=re.IGNORECASE)
-                clean_json = re.sub(r'\s*```$', '', clean_json, flags=re.IGNORECASE).strip()
-                if clean_json.startswith('{') and clean_json.endswith(']'): clean_json = '[' + clean_json
-                elif clean_json.startswith('[') and clean_json.endswith('}'): clean_json = clean_json + ']'
-                qs = json.loads(clean_json)
-                if isinstance(qs, dict): qs = [qs]
+                qs = robust_json_parse(json_input)
                 for q in qs:
                     q['layout'] = calculate_option_layout(q)
                     st.session_state.cart.append(q)
                 st.success(f"✅ 成功加入 {len(qs)} 道题目。")
-            except: st.error("JSON 解析失败。请检查格式。")
+            except Exception as e:
+                st.error(f"JSON 解析依然失败，可能存在括号未闭合等严重语法错误：{e}")
 
 with tab3:
     current_sections = []
     for q in st.session_state.cart:
-        sec_name = str(q.get('section', q.get('type', '未命名板块'))).strip()
-        if not sec_name: sec_name = '未命名板块'
+        sec_raw = str(q.get('section', '')).strip()
+        type_raw = normalize_type(q.get('type', ''))
+        
+        if type_raw.replace('题', '') in sec_raw:
+            sec_name = sec_raw
+        elif sec_raw and sec_raw.lower() not in ['null', 'none']:
+            sec_name = f"{sec_raw} - {type_raw}"
+        else:
+            sec_name = type_raw
+            
         q['clean_section'] = sec_name
         if sec_name not in current_sections: current_sections.append(sec_name)
+        
     st.session_state.section_order = [s for s in (st.session_state.section_order + [x for x in current_sections if x not in st.session_state.section_order]) if s in current_sections]
 
     section_configs = {}
@@ -625,8 +690,18 @@ with tab3:
             st.markdown("---")
             st.markdown("##### 📐 大题顺序与智能分值")
             for i, sec in enumerate(st.session_state.section_order):
-                q_count = sum(1 for q in st.session_state.cart if q['clean_section'] == sec)
-                default_pt = 3.0 if '单选' in sec else (4.0 if '多选' in sec else (2.0 if '判断' in sec else 5.0))
+                qs_in_sec = [q for q in st.session_state.cart if q['clean_section'] == sec]
+                q_count = len(qs_in_sec)
+                
+                types_in_sec = "".join([str(q.get('type', '')) for q in qs_in_sec])
+                combined_hint = (sec + types_in_sec).lower()
+                
+                if '多选' in combined_hint or 'multiple' in combined_hint: default_pt = 4.0
+                elif '单选' in combined_hint or 'single' in combined_hint: default_pt = 3.0
+                elif '判断' in combined_hint or 'judge' in combined_hint or 'true' in combined_hint or 'false' in combined_hint: default_pt = 2.0
+                elif '填空' in combined_hint or 'fill' in combined_hint: default_pt = 2.0
+                else: default_pt = 5.0
+                
                 col_n, col_up, col_down, col_s = st.columns([4, 0.5, 0.5, 2])
                 with col_n: st.markdown(f"**{sec}** *(共 {q_count} 题)*")
                 with col_up:
