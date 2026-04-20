@@ -22,7 +22,7 @@ from datetime import datetime
 import importlib
 
 # ================= 极其重要：页面配置必须是第一个执行的 Streamlit 指令 =================
-st.set_page_config(page_title="AI 试卷排版大师 v2.9.1", layout="wide", page_icon="📝")
+st.set_page_config(page_title="AI 试卷排版大师 v2.9.2", layout="wide", page_icon="📝")
 
 st.markdown("""
 <style>
@@ -45,7 +45,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 # =======================================================================================
 
-# ================= 依赖热加载 (放在 UI 配置之后) =================
 def ensure_dependencies():
     missing = []
     for pkg in ['pandas', 'openpyxl']:
@@ -60,7 +59,6 @@ def ensure_dependencies():
 
 ensure_dependencies()
 import pandas as pd
-# ==============================================================
 
 load_dotenv()
 
@@ -111,7 +109,7 @@ if 'section_order' not in st.session_state:
     st.session_state.section_order = []
 
 with st.sidebar:
-    st.image("https://img.shields.io/badge/AI%20排版引擎-v2.9.1%20Pro-blue?style=for-the-badge", use_column_width=True)
+    st.image("https://img.shields.io/badge/AI%20排版引擎-v2.9.2%20Pro-blue?style=for-the-badge", use_column_width=True)
     st.header("🗄️ 树状题库与收藏")
     tag_search = st.text_input("🔍 搜标签 (如: 建筑材料/第一章)", placeholder="输入知识点标签搜索库中试题")
     if st.button("从本地库拉取至手术台"):
@@ -139,7 +137,7 @@ with st.sidebar:
             st.code(f"[图片:{safe_name}]", language="text")
 
 st.title("📝 建筑材料教务系统 - 全能排版矩阵")
-st.caption("✨ v2.9.1：核心引擎时序修复 | 纯净组件热加载")
+st.caption("✨ v2.9.2：修复桥接模式大模型吞图 Bug | 终极选项去重")
 
 def normalize_type(raw_type):
     t = str(raw_type).lower()
@@ -585,7 +583,7 @@ with tab1:
                         model = genai.GenerativeModel('gemini-2.5-flash')
                         prompt = f"""你是一个高级试卷排版员。将以下文本整理为严格的JSON数组。
 包含字段: id(必须提取原卷题号), type(单选/多选/判断/填空/简答/计算/绘图), section(所属大题板块), content(题干), options(字符串数组), answer(答案), explanation(详细解析)。
-【极其重要1】：如果文本中存在 `[图片:img_xxxx.png]`，必须原封不动保留在 content 中！
+【极其重要1】：如果文本中存在 `[图片:img_xxxx.png]`，必须原封不动保留在 content 中！绝对不能遗漏！
 【极其重要2】：如果是阅读理解或共用题干的“套题”，请在父题中只保留背景材料作为 content，并将下面的小题存放在父题的 `sub_questions` 字段中。
 文本：{raw_text}"""
                         response = model.generate_content(prompt)
@@ -611,7 +609,10 @@ with tab2:
                 
             if raw_text:
                 st.success("复制下方提示词发送给大模型：")
-                st.code(f"你是一个高级排版员。请将以下文字整理为严格JSON数组。字段：id, type, section, content, options, answer, explanation, sub_questions(用于阅读套题)。\n{raw_text}", language="text")
+                # ================= V2.9.2 找回丢失的防吞图警告！ =================
+                prompt_text = f"""你是一个高级排版员。请将以下文字整理为严格JSON数组。字段：id, type, section, content, options, answer, explanation, sub_questions(用于阅读套题)。\n【极其重要】：如果文本中存在类似 `[图片:img_xxxx.png]` 的占位标记，你必须将其原封不动地保留在对应题目的 content(题干) 中！绝对不能遗漏！\n\n--- 试卷内容 ---\n{raw_text}"""
+                st.code(prompt_text, language="text")
+                # =============================================================
             else: st.warning("请先上传文件或粘贴内容！")
                 
     with col_step2:
